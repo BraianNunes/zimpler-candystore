@@ -23,17 +23,16 @@ type FavoriteSnack struct {
 	TotalSnacks   int    `json:"totalSnacks"`
 }
 
-func OrderFavoriteSnacksByTotalSnacksDescending(favoriteSnacks []FavoriteSnack) []FavoriteSnack {
+func orderFavoriteSnacksByTotalSnacksDescending(favoriteSnacks []FavoriteSnack) {
 	sort.SliceStable(favoriteSnacks, func(i, j int) bool {
 		return favoriteSnacks[i].TotalSnacks > favoriteSnacks[j].TotalSnacks
 	})
-	return favoriteSnacks
 }
 
-func ScrapeCandyStorePage() []CandyStore {
-	const URL = "https://candystore.zimpler.net"
+func scrapeCandyStorePage() []CandyStore {
+	const url = "https://candystore.zimpler.net"
 
-	res, err := http.Get(URL)
+	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,13 +67,13 @@ func ScrapeCandyStorePage() []CandyStore {
 	})
 
 	if len(candyStores) == 0 {
-		log.Fatal("No candy stores found")
+		log.Fatal("No candy stores found on the page")
 	}
 
 	return candyStores
 }
 
-func GetFavoriteSnack(groupedByName map[string][]CandyStore) []FavoriteSnack {
+func getFavoriteSnack(groupedByName map[string][]CandyStore) []FavoriteSnack {
 	var favoriteSnacks = make([]FavoriteSnack, 0)
 
 	for name, candyStores := range groupedByName {
@@ -84,11 +83,11 @@ func GetFavoriteSnack(groupedByName map[string][]CandyStore) []FavoriteSnack {
 			TotalSnacks:   0,
 		}
 
-		for _, candyStore := range candyStores {
-			if candyStore.Eaten > favoriteSnack.TotalSnacks {
-				favoriteSnack.FavoriteSnack = candyStore.Candy
+		for _, c := range candyStores {
+			if c.Eaten > favoriteSnack.TotalSnacks {
+				favoriteSnack.FavoriteSnack = c.Candy
 			}
-			favoriteSnack.TotalSnacks += candyStore.Eaten
+			favoriteSnack.TotalSnacks += c.Eaten
 		}
 
 		favoriteSnacks = append(favoriteSnacks, favoriteSnack)
@@ -96,44 +95,44 @@ func GetFavoriteSnack(groupedByName map[string][]CandyStore) []FavoriteSnack {
 	return favoriteSnacks
 }
 
-func GroupCandyStoreByCandy(stores []CandyStore) map[string][]CandyStore {
+func groupCandyStoreByCandy(stores []CandyStore) map[string][]CandyStore {
 	nameMap := make(map[string][]CandyStore)
 
 	for _, candyStore := range stores {
 		if _, ok := nameMap[candyStore.Name]; !ok {
 			nameMap[candyStore.Name] = append(nameMap[candyStore.Name], candyStore)
 		} else {
-			var list = nameMap[candyStore.Name]
-
+			var candyStores = nameMap[candyStore.Name]
 			var isCandyInTheList = false
-			for idx, candy := range list {
-				if candy.Candy == candyStore.Candy {
-					list[idx].Eaten += candyStore.Eaten
+
+			for idx, c := range candyStores {
+				if c.Candy == candyStore.Candy {
+					candyStores[idx].Eaten += candyStore.Eaten
 					isCandyInTheList = true
 					break
 				}
 			}
+
 			if !isCandyInTheList {
 				nameMap[candyStore.Name] = append(nameMap[candyStore.Name], candyStore)
 			}
 		}
 	}
-
 	return nameMap
 }
 
 func main() {
 	// Scrape the candy store page
-	candyStores := ScrapeCandyStorePage()
+	candyStores := scrapeCandyStorePage()
 
 	// Group the candy stores by name
-	var groupedByCandy = GroupCandyStoreByCandy(candyStores)
+	var groupedByCandy = groupCandyStoreByCandy(candyStores)
 
 	// Get the favorite snack for each person
-	favoriteSnacks := GetFavoriteSnack(groupedByCandy)
+	favoriteSnacks := getFavoriteSnack(groupedByCandy)
 
 	// Order the favorite snacks by total snacks descending
-	OrderFavoriteSnacksByTotalSnacksDescending(favoriteSnacks)
+	orderFavoriteSnacksByTotalSnacksDescending(favoriteSnacks)
 
 	// Convert the favorite snacks to json
 	data, _ := json.MarshalIndent(favoriteSnacks, "", " ")
