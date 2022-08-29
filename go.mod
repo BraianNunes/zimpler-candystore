@@ -1,6 +1,4 @@
-module challenge/zimpler/scraping
-
-//module github.com/BraianNunes/scraping
+module zimpler-candystore
 
 go 1.19
 
